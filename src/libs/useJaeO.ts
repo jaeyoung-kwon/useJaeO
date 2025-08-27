@@ -5,7 +5,8 @@ import {
   useRef,
   useSyncExternalStore,
 } from 'react';
-import { getSnapshot, refetchData, subscribe } from './dataStore';
+import { queryClient } from './query/queryClient';
+import { queryStore } from './query/queryStore';
 
 interface UseJaeOOptions<T, R = T> {
   fetchKey: string;
@@ -28,7 +29,7 @@ export function useJaeO<T, R = T>({
   const onSuccessRef = useRef(onSuccess);
 
   const fetchAndUpdateData = useCallback(async () => {
-    return refetchData<T>(fetchKey, {
+    return queryClient.refetchQuery<T>(fetchKey, {
       fetchFn: fetchFnRef.current,
       onError: onErrorRef.current,
       onSuccess: onSuccessRef.current,
@@ -38,13 +39,14 @@ export function useJaeO<T, R = T>({
   const snapshot = useSyncExternalStore(
     useCallback(
       (cb) => {
-        const unsubscribe = subscribe(fetchKey, cb);
+        const unsubscribe = queryStore.subscribe(fetchKey, cb);
         fetchAndUpdateData();
         return unsubscribe;
       },
       [fetchAndUpdateData, fetchKey],
     ),
-    () => getSnapshot<T>(fetchKey),
+    () => queryStore.getSnapshot<T>(fetchKey),
+    () => queryStore.getSnapshot<T>(fetchKey),
   );
 
   useEffect(() => {
