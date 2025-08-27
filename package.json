@@ -1,0 +1,34 @@
+{
+  "name": "@jae-o/jaeo-query",
+  "type": "module",
+  "version": "1.0.1",
+  "description": "A lightweight React server state management library inspired by React Query. Built with useSyncExternalStore, it provides hooks for fetching, caching, and mutating server state.",
+  "main": "dist/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaeyoung-kwon/useJaeO.git"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/jaeyoung-kwon/useJaeO#readme",
+  "scripts": {
+    "build": "rm -rf ./dist && tsc",
+    "prepare": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "devDependencies": {
+    "@types/react": "^19.1.11",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.6.2",
+    "react": "^19.1.1",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
+  }
+}
