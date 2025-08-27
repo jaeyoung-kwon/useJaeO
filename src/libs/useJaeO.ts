@@ -16,6 +16,7 @@ interface UseJaeOOptions<T, R = T> {
   onSuccess?: () => void;
   staleTime?: number;
   gcTime?: number;
+  retry?: number;
 }
 
 export function useJaeO<T, R = T>({
@@ -26,6 +27,7 @@ export function useJaeO<T, R = T>({
   onSuccess,
   staleTime = 0,
   gcTime = 3000,
+  retry = 3,
 }: UseJaeOOptions<T, R>) {
   const fetchFnRef = useRef(fetchFn);
   const convertFnRef = useRef(convertFn);
@@ -50,11 +52,11 @@ export function useJaeO<T, R = T>({
           gcTime,
         );
 
-        queryClient.loadQuery(fetchKey, staleTime, fetchOptions);
+        queryClient.loadQuery(fetchKey, staleTime, retry, fetchOptions);
 
         return unsubscribe;
       },
-      [fetchKey, fetchOptions, staleTime, gcTime],
+      [fetchKey, gcTime, staleTime, retry, fetchOptions],
     ),
     () => queryStore.getSnapshot<T>(fetchKey),
     () => queryStore.getSnapshot<T>(fetchKey),

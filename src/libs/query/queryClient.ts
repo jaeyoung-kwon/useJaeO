@@ -10,6 +10,8 @@ type FetchOptions<T> = {
 const createQueryClient = () => {
   const inFlightFetchFns = new Map<string, Promise<unknown>>();
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   return {
     patchQuery: <T>(key: string, partial: Partial<Data<T>>) => {
       queryStore.setSnapshot(key, (prev) => ({
@@ -48,7 +50,7 @@ const createQueryClient = () => {
             isError: true,
           });
           options?.onError?.(e);
-          return null;
+          throw new Error(e);
         })
         .finally(() => {
           inFlightFetchFns.delete(key);
@@ -56,17 +58,28 @@ const createQueryClient = () => {
 
       inFlightFetchFns.set(key, fetchPromise);
     },
-    loadQuery: <T>(
+    loadQuery: async <T>(
       key: string,
       staleTime: number,
+      retryCount: number,
       options: FetchOptions<T>,
     ) => {
       const curSnapshot = queryStore.getSnapshot<T>(key);
+      let attempt = 0;
+
       const shouldFetch =
         !curSnapshot?.data ||
         Date.now() - (curSnapshot?.updatedAt ?? 0) > staleTime;
       if (shouldFetch) {
-        queryClient.fetchQuery(key, options);
+        while (attempt < retryCount) {
+          try {
+            await queryClient.fetchQuery(key, options);
+            return;
+          } catch {
+            await sleep(1000);
+            attempt++;
+          }
+        }
       }
     },
     refetchQuery: async <T>(key: string, options?: FetchOptions<T>) => {
