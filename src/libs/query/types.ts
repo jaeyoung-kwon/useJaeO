@@ -3,6 +3,7 @@ export type Data<T> = {
   isLoading: boolean;
   isError: boolean;
   fetchFn?: () => Promise<T>;
+  updatedAt: number;
 };
 
 export type Listener = () => void;

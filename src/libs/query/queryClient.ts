@@ -1,17 +1,14 @@
 import { queryStore } from './queryStore';
 import { Data } from './types';
 
-type RefetchOptions<T> = {
+type FetchOptions<T> = {
   fetchFn?: () => Promise<T>;
   onSuccess?: (value: T) => void;
   onError?: (error: unknown) => void;
 };
 
 export const queryClient = {
-  patchQuery: <T>(key: string, partial: Partial<Data<T>>) => {
-    queryStore.setSnapshot(key, (prev) => ({ ...prev, ...partial }));
-  },
-  refetchQuery: async <T>(key: string, options?: RefetchOptions<T>) => {
+  fetchQuery: async <T>(key: string, options?: FetchOptions<T>) => {
     const current = queryStore.getSnapshot<T>(key);
     const finalFetchFn = options?.fetchFn ?? current?.fetchFn;
     if (!finalFetchFn) return null;
@@ -25,6 +22,7 @@ export const queryClient = {
         isLoading: false,
         isError: false,
         fetchFn: finalFetchFn,
+        updatedAt: Date.now(),
       });
       options?.onSuccess?.(result);
       return result;
@@ -37,5 +35,24 @@ export const queryClient = {
       options?.onError?.(e);
       return null;
     }
+  },
+  loadQuery: <T>(key: string, staleTime: number, options: FetchOptions<T>) => {
+    const curSnapshot = queryStore.getSnapshot<T>(key);
+    const shouldFetch =
+      !curSnapshot?.data ||
+      Date.now() - (curSnapshot?.updatedAt ?? 0) > staleTime;
+    if (shouldFetch) {
+      queryClient.fetchQuery(key, options);
+    }
+  },
+  patchQuery: <T>(key: string, partial: Partial<Data<T>>) => {
+    queryStore.setSnapshot(key, (prev) => ({
+      ...prev,
+      ...partial,
+      updatedAt: Date.now(),
+    }));
+  },
+  refetchQuery: async <T>(key: string, options?: FetchOptions<T>) => {
+    queryClient.fetchQuery(key, options);
   },
 };

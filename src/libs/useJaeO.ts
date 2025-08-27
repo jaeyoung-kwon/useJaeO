@@ -14,6 +14,8 @@ interface UseJaeOOptions<T, R = T> {
   convertFn?: (raw: T) => R;
   onError?: () => void;
   onSuccess?: () => void;
+  staleTime?: number;
+  gcTime?: number;
 }
 
 export function useJaeO<T, R = T>({
@@ -22,28 +24,37 @@ export function useJaeO<T, R = T>({
   convertFn,
   onError,
   onSuccess,
+  staleTime = 0,
+  gcTime = 3000,
 }: UseJaeOOptions<T, R>) {
   const fetchFnRef = useRef(fetchFn);
   const convertFnRef = useRef(convertFn);
   const onErrorRef = useRef(onError);
   const onSuccessRef = useRef(onSuccess);
 
-  const fetchAndUpdateData = useCallback(async () => {
-    return queryClient.refetchQuery<T>(fetchKey, {
+  const fetchOptions = useMemo(
+    () => ({
       fetchFn: fetchFnRef.current,
       onError: onErrorRef.current,
       onSuccess: onSuccessRef.current,
-    });
-  }, [fetchKey]);
+    }),
+    [],
+  );
 
   const snapshot = useSyncExternalStore(
     useCallback(
-      (cb) => {
-        const unsubscribe = queryStore.subscribe(fetchKey, cb);
-        fetchAndUpdateData();
+      (onStoreChange) => {
+        const unsubscribe = queryStore.subscribe(
+          fetchKey,
+          onStoreChange,
+          gcTime,
+        );
+
+        queryClient.loadQuery(fetchKey, staleTime, fetchOptions);
+
         return unsubscribe;
       },
-      [fetchAndUpdateData, fetchKey],
+      [fetchKey, fetchOptions, staleTime, gcTime],
     ),
     () => queryStore.getSnapshot<T>(fetchKey),
     () => queryStore.getSnapshot<T>(fetchKey),
@@ -78,6 +89,6 @@ export function useJaeO<T, R = T>({
     data: convertedData,
     isLoading: snapshot?.isLoading ?? false,
     isError: snapshot?.isError ?? false,
-    refetch: fetchAndUpdateData,
+    refetch: queryClient.refetchQuery,
   };
 }
