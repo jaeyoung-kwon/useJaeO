@@ -1,2 +1,2 @@
-export * from './useJaeO';
-export * from './useJaeOMutation';
+export * from './useQuery';
+export * from './useMutation';
