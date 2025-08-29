@@ -6,6 +6,7 @@ const initState = (): Query<unknown> => ({
   data: null,
   isLoading: true,
   isError: false,
+  updatedAt: 0,
 });
 
 export interface QueryStore {

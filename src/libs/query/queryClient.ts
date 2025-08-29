@@ -13,6 +13,7 @@ export const queryClient = {
         data: result,
         isLoading: false,
         isError: false,
+        updatedAt: Date.now(),
       });
     } catch {
       queryClient.patchQuery(key, {
@@ -21,10 +22,17 @@ export const queryClient = {
       });
     }
   },
-  loadQueryData: <TData>(key: string, queryFn: () => Promise<TData>) => {
+  loadQueryData: <TData>(
+    key: string,
+    queryFn: () => Promise<TData>,
+    staleTime: number,
+  ) => {
     const snapshot = queryStore.getSnapshot(key);
-    if (snapshot.data) return;
+    const isStale =
+      !snapshot.updatedAt || Date.now() - snapshot.updatedAt > staleTime;
 
-    queryClient.fetchQuery(key, queryFn);
+    if (snapshot.data == null || isStale) {
+      queryClient.fetchQuery<TData>(key, queryFn);
+    }
   },
 };
