@@ -15,12 +15,13 @@ export interface QueryStore {
     key: string,
     next: Query<TData> | ((prev: Query<TData>) => Query<TData>),
   ) => void;
-  subscribe: (key: string, callback: Listener) => () => void;
+  subscribe: (key: string, callback: Listener, gcTime: number) => () => void;
 }
 
 export const createQueryStore = (): QueryStore => {
   const store: Store<unknown> = new Map<string, Query<unknown>>();
   const listeners: Record<string, Set<Listener>> = {};
+  const gcTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
   const getOrInit = <TData>(key: string): Query<TData> => {
     const cur = store.get(key) as Query<TData> | undefined;
@@ -47,10 +48,28 @@ export const createQueryStore = (): QueryStore => {
 
       listeners[key]?.forEach((cb) => cb());
     },
-    subscribe: (key, callback) => {
+    subscribe: (key, callback, gcTime) => {
       if (!listeners[key]) listeners[key] = new Set();
       listeners[key].add(callback);
-      return () => listeners[key]?.delete(callback);
+
+      const timeout = gcTimeouts.get(key);
+      if (timeout) {
+        clearTimeout(timeout);
+        gcTimeouts.delete(key);
+      }
+
+      return () => {
+        listeners[key]?.delete(callback);
+
+        if (listeners[key]?.size === 0) {
+          delete listeners[key];
+          const timeout = setTimeout(() => {
+            store.delete(key);
+            gcTimeouts.delete(key);
+          }, gcTime);
+          gcTimeouts.set(key, timeout);
+        }
+      };
     },
   };
 };
