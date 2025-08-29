@@ -1,6 +1,8 @@
 import { queryStore } from './queryStore';
 import { Query } from './types';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export const queryClient = {
   patchQuery: <TData>(key: string, partial: Partial<Query<TData>>) => {
     queryStore.setSnapshot(key, (prev) => ({ ...prev, ...partial }));
@@ -15,24 +17,36 @@ export const queryClient = {
         isError: false,
         updatedAt: Date.now(),
       });
-    } catch {
+    } catch (e) {
       queryClient.patchQuery(key, {
         isLoading: false,
         isError: true,
       });
+      throw new Error(e);
     }
   },
-  loadQueryData: <TData>(
+  loadQueryData: async <TData>(
     key: string,
     queryFn: () => Promise<TData>,
     staleTime: number,
+    retryCount: number,
   ) => {
+    let attempt = 0;
+
     const snapshot = queryStore.getSnapshot(key);
     const isStale =
       !snapshot.updatedAt || Date.now() - snapshot.updatedAt > staleTime;
 
     if (snapshot.data == null || isStale) {
-      queryClient.fetchQuery<TData>(key, queryFn);
+      while (attempt < retryCount) {
+        try {
+          await queryClient.fetchQuery(key, queryFn);
+          return;
+        } catch {
+          await sleep(1000);
+          attempt++;
+        }
+      }
     }
   },
 };

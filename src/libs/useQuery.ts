@@ -7,6 +7,7 @@ interface UseQueryOptions<TData> {
   queryFn: () => Promise<TData>;
   staleTime?: number;
   gcTime?: number;
+  retry?: number;
 }
 
 export const useQuery = <TData>({
@@ -14,6 +15,7 @@ export const useQuery = <TData>({
   queryFn,
   staleTime = 0,
   gcTime = 5 * 60 * 1000, // 5분
+  retry = 3,
 }: UseQueryOptions<TData>) => {
   const queryFnRef = useRef(queryFn);
 
@@ -25,10 +27,15 @@ export const useQuery = <TData>({
           onStoreChange,
           gcTime,
         );
-        queryClient.loadQueryData(queryKey, queryFnRef.current, staleTime);
+        queryClient.loadQueryData(
+          queryKey,
+          queryFnRef.current,
+          staleTime,
+          retry,
+        );
         return unsubscribe;
       },
-      [gcTime, queryKey, staleTime],
+      [gcTime, queryKey, retry, staleTime],
     ),
     () => queryStore.getSnapshot<TData>(queryKey),
     () => queryStore.getSnapshot<TData>(queryKey),
